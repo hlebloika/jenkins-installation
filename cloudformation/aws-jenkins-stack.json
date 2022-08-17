@@ -1,0 +1,143 @@
+{
+    "Resources": {
+        "SshKey": {
+            "Type": "AWS::EC2::KeyPair",
+            "Properties": {
+                "KeyName": "aws_ssh",
+                "KeyType": "rsa"
+            }
+        },
+        "JenkinsVmSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupName": "JenkinsVmSG",
+                "GroupDescription": "SG for Jenkins VM"
+            }
+        },
+        "JenkinsLbSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupName": "JenkinsLbSG",
+                "GroupDescription": "SG for Jenkins LB"
+            }
+        },
+        "SshIngressRule": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties":{
+                "CidrIp": "0.0.0.0/0",
+                "FromPort": 22,
+                "ToPort": 22,
+                "IpProtocol": "tcp",
+                "GroupName": "JenkinsVmSG"
+            }
+        },
+        "LbToJenkinsIngressRule": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties":{
+                "FromPort": 80,
+                "ToPort": 80,
+                "IpProtocol": "tcp",
+                "GroupName": "JenkinsVmSG",
+                "SourceSecurityGroupName": "JenkinsLbSG"
+            }
+        },
+        "LbIngressRule": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "CidrIp": "0.0.0.0/0",
+                "FromPort": 80,
+                "ToPort": 80,
+                "IpProtocol": "tcp",
+                "GroupName": "JenkinsLbSG"
+            }
+        },
+        "JenkinsVM": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "AvailabilityZone": "us-west-2a",
+                "ImageId": "ami-0d70546e43a941d70",
+                "InstanceType": "t2.micro",
+                "KeyName": "aws_ssh",
+                "SecurityGroups": [
+
+                ],
+                "BlockDeviceMappings": [
+                  {
+                    "DeviceName": "/dev/sda1",
+                    "Ebs": {
+                        "VolumeSize": "20"
+                    }
+                  }
+                ],
+                "NetworkInterfaces": [
+                    {
+                        "AssociatePublicIpAddress": "true",
+                        "DeviceIndex": "0",
+                        "GroupSet": [
+                            { "Fn::GetAtt": ["JenkinsVmSG", "GroupId"] }
+                        ]
+                    }
+
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Sub": "#!/bin/bash\n sudo apt update\n sudo apt install -y nginx\n systemctl enable nginx\n systemctl start nginx"
+                    }
+                }
+            }
+        },
+        "JenkinsTG": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+                "VpcId": "vpc-0e3743d166a10a752",
+                "HealthCheckEnabled": "true",
+                "HealthCheckIntervalSeconds": 20,
+                "HealthCheckPath": "/",
+                "HealthCheckPort": 80,
+                "HealthCheckProtocol": "HTTP",
+                "HealthCheckTimeoutSeconds": 15,
+                "HealthyThresholdCount": 2,
+                "UnhealthyThresholdCount": 3,
+                "Name": "jenkins-tg",
+                "Port": 80,
+                "Protocol": "HTTP",
+                "TargetType": "instance",
+                "Targets": [
+                    {
+                        "Id": {"Ref": "JenkinsVM"}
+                    }
+                ]
+            }
+        },
+        "JenkinsLB": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties": {
+                "Type": "application",
+                "IpAddressType": "ipv4",
+                "Name": "jenkins-lb",
+                "Scheme": "internet-facing",
+                "SecurityGroups": [
+                    { "Fn::GetAtt": ["JenkinsLbSG", "GroupId"] }
+                ],
+                "Subnets": [
+                    "subnet-0f13734aaddf0061d",
+                    "subnet-03821b6b51fbc01b1"
+                ]
+            }
+        },
+        "JenkinsLBListener": {
+            "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties": {
+                "DefaultActions": [
+                    {
+                        "Type": "forward",
+                        "TargetGroupArn": { "Ref": "JenkinsTG" }
+                    }
+                ],
+                "LoadBalancerArn": { "Ref": "JenkinsLB" },
+                "Port": 80,
+                "Protocol": "HTTP"
+            }
+        }
+    } 
+}
