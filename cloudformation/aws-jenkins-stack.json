@@ -139,5 +139,13 @@
                 "Protocol": "HTTP"
             }
         }
-    } 
+    },
+    "Outputs": {
+        "ExternalJenkinsVMIP": {
+            "Value": { "Fn::GetAtt": ["JenkinsVM", "PublicIp"]}
+        },
+        "LBDNS": {
+            "Value": { "Fn::GetAtt": ["JenkinsLB", "DNSName"]}
+        }
+    }
 }
