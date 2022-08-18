@@ -1,0 +1,40 @@
+---
+- name: Jenkins Installation
+  hosts: 34.221.16.231
+  tasks:
+    - name: Add jenkins repository
+      shell:
+        cmd: |
+          curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo tee \
+            /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+          echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+            https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+            /etc/apt/sources.list.d/jenkins.list > /dev/null
+    
+    - name: Install java
+      apt:
+        name: openjdk-11-jre
+        update_cache: yes
+        state: present
+    
+    - name: Install jenkins
+      apt:
+        name: jenkins
+        update_cache: yes
+        state: present
+    
+    - name: Enable and start jenkins
+      systemd:
+        name: jenkins
+        enabled: yes
+        state: started
+    
+    - name: Get secret jenkins key
+      shell:
+        cmd: "cat /var/lib/jenkins/secrets/initialAdminPassword"
+      register: jenkins_secret
+
+    - name: Print jenkins secret to output
+      debug:
+        msg: "{{ jenkins_secret.stdout }}"
+        

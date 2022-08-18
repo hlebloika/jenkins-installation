@@ -34,8 +34,8 @@
         "LbToJenkinsIngressRule": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties":{
-                "FromPort": 80,
-                "ToPort": 80,
+                "FromPort": 8080,
+                "ToPort": 8080,
                 "IpProtocol": "tcp",
                 "GroupName": "JenkinsVmSG",
                 "SourceSecurityGroupName": "JenkinsLbSG"
@@ -78,12 +78,7 @@
                         ]
                     }
 
-                ],
-                "UserData": {
-                    "Fn::Base64": {
-                        "Fn::Sub": "#!/bin/bash\n sudo apt update\n sudo apt install -y nginx\n systemctl enable nginx\n systemctl start nginx"
-                    }
-                }
+                ]
             }
         },
         "JenkinsTG": {
@@ -92,14 +87,14 @@
                 "VpcId": "vpc-0e3743d166a10a752",
                 "HealthCheckEnabled": "true",
                 "HealthCheckIntervalSeconds": 20,
-                "HealthCheckPath": "/",
-                "HealthCheckPort": 80,
+                "HealthCheckPath": "/login",
+                "HealthCheckPort": 8080,
                 "HealthCheckProtocol": "HTTP",
                 "HealthCheckTimeoutSeconds": 15,
                 "HealthyThresholdCount": 2,
                 "UnhealthyThresholdCount": 3,
                 "Name": "jenkins-tg",
-                "Port": 80,
+                "Port": 8080,
                 "Protocol": "HTTP",
                 "TargetType": "instance",
                 "Targets": [
