@@ -1,6 +1,6 @@
 ---
 - name: Jenkins Installation
-  hosts: 34.221.16.231
+  hosts: 35.87.251.12
   tasks:
     - name: Add jenkins repository
       shell:
